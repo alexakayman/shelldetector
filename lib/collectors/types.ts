@@ -1,48 +1,50 @@
-// GLEIF specific types
-interface GLEIFResponse {
-  data: {
-    attributes: {
-      lei: string;
-      entity: {
-        legalName: string;
-        legalAddress: {
-          addressLines: string[];
-          city: string;
-          country: string;
-          postalCode: string;
-        };
-        status: string;
-      };
-      registration: {
-        initialRegistrationDate: string;
-        lastUpdateDate: string;
-      };
+export interface BaseCompanyData {
+  name: string;
+  registeredAddress: string;
+  incorporationDate: Date;
+  status: "ACTIVE" | "INACTIVE" | "DISSOLVED";
+  lei?: string;
+  lastUpdated: Date;
+}
+
+export interface GLEIFEntity {
+  lei: string;
+  entity: {
+    legalName: {
+      name: string;
+      language: string;
+    }[];
+    legalAddress: {
+      addressLines: string[];
+      city: string;
+      country: string;
+      postalCode: string;
     };
-    relationships: {
-      directParent: GLEIFRelationship;
-      ultimateParent: GLEIFRelationship;
+    headquartersAddress?: {
+      addressLines: string[];
+      city: string;
+      country: string;
+      postalCode: string;
     };
+    status: string;
+    legalForm?: {
+      id: string;
+      other: string;
+    };
+  };
+  registration: {
+    initialRegistrationDate: string;
+    lastUpdateDate: string;
+    status: string;
   };
 }
 
-interface GLEIFRelationship {
-  lei: string;
-  name: string;
-  relationshipType: string;
-  relationshipPeriod: {
+export interface GLEIFRelationship {
+  relationship: {
+    startNode: { nodeID: string };
+    endNode: { nodeID: string };
+    relationshipType: string;
     startDate: string;
     endDate?: string;
-  };
-}
-
-// SEC EDGAR specific types
-interface EDGARResponse {
-  filings: {
-    recent: {
-      accessionNumber: string[];
-      filingDate: string[];
-      form: string[];
-      primaryDocument: string[];
-    };
   };
 }
