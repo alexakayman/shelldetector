@@ -1,0 +1,27 @@
+src/
+├── app/
+│   ├── api/
+│   │   ├── companies/
+│   │   │   ├── route.ts
+│   │   │   └── [id]/
+│   │   │       ├── route.ts
+│   │   │       └── risk-analysis/
+│   │   │           └── route.ts
+├── lib/
+│   ├── collectors/
+│   │   ├── types.ts             # Shared types
+│   │   ├── gleif.ts             # GLEIFCollector implementation
+│   │   ├── edgar.ts             # EDGARCollector implementation
+│   │   └── index.ts             # Export all collectors
+│   ├── risk-analysis/
+│   │   ├── types.ts             # Risk analysis types
+│   │   ├── flags/
+│   │   │   ├── ownership.ts
+│   │   │   ├── operations.ts
+│   │   │   ├── address.ts
+│   │   │   └── index.ts
+│   │   ├── detector.ts          # ShellCompanyDetector implementation
+│   │   └── index.ts
+│   └── constants.ts             # API URLs, thresholds, etc.
+├── types/
+│   └── company.ts               # Shared company types
