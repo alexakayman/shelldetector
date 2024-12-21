@@ -40,6 +40,7 @@ export function RelationshipMap({
         data: {
           label: entity.name,
           riskScore: entity.riskScore,
+          relationship: entity.relationship,
         },
         position: {
           x: 150 + index * 200,
@@ -67,9 +68,16 @@ export function RelationshipMap({
 
   const nodeTypes = useMemo(
     () => ({
-      default: ({ data }: { data: { label: string; riskScore: number } }) => (
+      default: ({
+        data,
+      }: {
+        data: { label: string; riskScore: number; relationship: string };
+      }) => (
         <div className="text-center">
-          <div className="font-medium">{data.label}</div>
+          <div className="font-medium text-lg">{data.label}</div>
+          <div className="font-light text-xs text-slate-700">
+            {data.relationship}
+          </div>
           <div
             className={`text-sm mt-1 ${
               data.riskScore <= 30
