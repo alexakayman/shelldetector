@@ -80,3 +80,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+.temp {
+  stroke-dasharray: 5 5;
+  opacity: 0.75;
+}
