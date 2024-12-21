@@ -1,6 +1,48 @@
 // src/lib/collectors/gleif.ts
 import { BaseCompanyData, GLEIFEntity, GLEIFRelationship } from "./types";
 
+interface FuzzySearchResult {
+  lei: string;
+  legalName: string;
+  matchScore: number;
+  status: string;
+  legalAddress: string;
+  registrationAuthority: string;
+}
+
+interface GLEIFFuzzyResponse {
+  data: Array<{
+    id: string;
+    type: string;
+    attributes: {
+      lei: string;
+      entity: {
+        legalName: Array<{
+          name: string;
+          language: string;
+        }>;
+        legalAddress: {
+          addressLines: string[];
+          city: string;
+          country: string;
+          postalCode: string;
+        };
+        status: string;
+        registrationAuthority: {
+          registrationAuthorityID: string;
+          registrationAuthorityEntityID: string;
+        };
+      };
+      score: number;
+    };
+  }>;
+  meta: {
+    total: number;
+    page: number;
+    pageSize: number;
+  };
+}
+
 export class GLEIFCollector {
   private readonly baseUrl = "https://api.gleif.org/api/v1";
   private readonly apiKey: string;
@@ -83,6 +125,43 @@ export class GLEIFCollector {
       return relatedCompanies;
     } catch (error) {
       console.error(`Error fetching related companies for LEI ${lei}:`, error);
+      throw error;
+    }
+  }
+
+  async fuzzySearch(
+    query: string,
+    options: {
+      page?: number;
+      pageSize?: number;
+      field?: "fulltext" | "legalName" | "previousLegalName";
+    } = {}
+  ): Promise<FuzzySearchResult[]> {
+    try {
+      const searchParams = new URLSearchParams({
+        q: query,
+        field: options.field || "fulltext",
+        page: (options.page || 1).toString(),
+        page_size: (options.pageSize || 10).toString(),
+      });
+
+      const response = await this.fetchWithAuth(
+        `/fuzzycompletions?${searchParams.toString()}`
+      );
+
+      const data = response as GLEIFFuzzyResponse;
+
+      return data.data.map((item) => ({
+        lei: item.attributes.lei,
+        legalName: item.attributes.entity.legalName[0]?.name || "",
+        matchScore: item.attributes.score,
+        status: item.attributes.entity.status,
+        legalAddress: this.formatAddress(item.attributes.entity.legalAddress),
+        registrationAuthority:
+          item.attributes.entity.registrationAuthority.registrationAuthorityID,
+      }));
+    } catch (error) {
+      console.error(`Error performing fuzzy search for query ${query}:`, error);
       throw error;
     }
   }
