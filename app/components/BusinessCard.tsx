@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
               </Button>
             )}
           </div>
-          <div className="flex items-center text-sm text-muted-foreground">
+          <div className="flex items-center text-sm text-muted-foreground font-sans">
             <MapPin className="w-4 h-4 mr-1" />
             {business.address}
           </div>
@@ -40,7 +40,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
         <RiskMeter score={business.riskScore} />
 
-        <div className="space-y-2">
+        <div className="space-y-2 font-sans">
           <div className="flex items-center text-sm">
             <Calendar className="w-4 h-4 mr-1" />
             <span>Registered: {business.registrationDate}</span>
@@ -53,13 +53,15 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
         {business.riskFactors.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium flex items-center">
+            <h4 className="text-sm font-medium flex items-center font-sans">
               <AlertCircle className="w-4 h-4 mr-1" />
               Risk Factors
             </h4>
             <ul className="text-sm space-y-1">
               {business.riskFactors.map((factor, index) => (
-                <li key={index} className="text-muted-foreground">• {factor}</li>
+                <li key={index} className="text-muted-foreground font-sans">
+                  • {factor}
+                </li>
               ))}
             </ul>
           </div>

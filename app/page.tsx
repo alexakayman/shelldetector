@@ -31,7 +31,7 @@ export default function Home() {
           </p>
         </div>
 
-        <form onSubmit={handleSearch} className="flex gap-2 mb-8">
+        <form onSubmit={handleSearch} className="flex gap-2 mb-8 font-sans">
           <Input
             type="text"
             placeholder="Enter business name..."
