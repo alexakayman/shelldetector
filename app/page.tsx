@@ -12,13 +12,114 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<BusinessEntity[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+
+  interface SearchResult {
+    id: string;
+    name: string;
+    matchScore: number;
+    jurisdiction?: string;
+    lei?: string;
+    source: "GLEIF" | "OpenCorporates";
+    metadata?: Record<string, any>;
+  }
+
+  interface BusinessEntity {
+    id: string;
+    name: string;
+    registrationDate: string;
+    status: "Active" | "Inactive" | "Suspended";
+    riskScore: number;
+    riskFactors: string[];
+    lastFilingDate: string;
+    address: string;
+    relatedEntities?: RelatedEntity[];
+  }
+
+  interface SearchResponse {
+    results: SearchResult[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      hasMore: boolean;
+    };
+    metadata: {
+      fetchedAt: string;
+      sources: string[];
+      query: {
+        original: string;
+        jurisdiction: string;
+      };
+    };
+  }
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const searchResults = await mockSearch(query);
-    setResults(searchResults);
-    setLoading(false);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/companies/search?${new URLSearchParams({
+          q: query,
+          page: "1",
+          limit: "10",
+        })}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Search failed");
+      }
+
+      const data = await response.json();
+
+      const transformedResults: BusinessEntity[] = data.results.map(
+        (result) => ({
+          id: result.id,
+          name: result.name,
+          registrationDate:
+            result.metadata?.incorporationDate || new Date().toISOString(),
+          // Map the status to your specific union type
+          status: mapStatus(result.metadata?.status),
+          riskScore: calculateRiskScore(result),
+          riskFactors: determineRiskFactors(result),
+          lastFilingDate:
+            result.metadata?.lastFilingDate ||
+            result.metadata?.updated_at ||
+            new Date().toISOString(),
+          // Use the address from metadata or construct from components
+          address:
+            result.metadata?.legalAddress ||
+            result.metadata?.registeredAddress ||
+            "Address not available",
+          relatedEntities: [], // If you have related entities data, map it here
+        })
+      );
+
+      setResults(transformedResults);
+    } catch (error) {
+      console.error("Search error:", error);
+      setError(error instanceof Error ? error.message : "Search failed");
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to map various status strings to your union type
+  const mapStatus = (status?: string): BusinessEntity["status"] => {
+    if (!status) return "Inactive";
+
+    const normalizedStatus = status.toLowerCase();
+
+    if (normalizedStatus.includes("active")) return "Active";
+    if (normalizedStatus.includes("suspend")) return "Suspended";
+    return "Inactive";
   };
 
   return (
