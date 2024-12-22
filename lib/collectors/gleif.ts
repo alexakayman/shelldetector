@@ -47,16 +47,17 @@ interface GLEIFFuzzyResponse {
 
 export class GLEIFCollector {
   private readonly baseUrl = "https://api.gleif.org/api/v1";
-  private readonly apiKey: string;
+  // private readonly apiKey: string;
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
+  // constructor(apiKey: string) {
+  //   this.apiKey = apiKey;
+  // }
 
+  // initial base run for all further queries. ex, fuzzy match calls this first -> fuzzy match logic.
   private async fetchWithAuth(endpoint: string) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        // Authorization: `Bearer ${this.apiKey}`, // no api key needed, public api
         Accept: "application/vnd.api+json",
       },
     });
@@ -131,6 +132,7 @@ export class GLEIFCollector {
     }
   }
 
+  // fuzzy search to generate an initial list of companies post input. This can either return company names (fuzzy matched) or check a keyword against the entirety of a GLEIF incorporation article.
   async fuzzySearch(
     query: string,
     options: {
@@ -172,6 +174,7 @@ export class GLEIFCollector {
     }
   }
 
+  // for specific company search against exact legal incorporation
   async searchCompanies(
     query: string,
     options: { page: number; limit: number }
