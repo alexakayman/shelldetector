@@ -43,6 +43,8 @@ interface GLEIFFuzzyResponse {
   };
 }
 
+// fuzzy match: https://api.gleif.org/api/v1/fuzzycompletions?field=entity.legalName&q=
+
 export class GLEIFCollector {
   private readonly baseUrl = "https://api.gleif.org/api/v1";
   private readonly apiKey: string;
@@ -134,7 +136,7 @@ export class GLEIFCollector {
     options: {
       page?: number;
       pageSize?: number;
-      field?: "fulltext" | "legalName" | "previousLegalName";
+      field?: "fulltext" | "legalName" | "previousLegalName"; // append field
     } = {}
   ): Promise<FuzzySearchResult[]> {
     try {
@@ -148,6 +150,10 @@ export class GLEIFCollector {
       const response = await this.fetchWithAuth(
         `/fuzzycompletions?${searchParams.toString()}`
       );
+
+      // debug.
+      console.log(`/fuzzycompletions?${searchParams.toString()}`);
+      console.log("Expecting: ../fuzzycompletions?field=entity.legalName&q=");
 
       const data = response as GLEIFFuzzyResponse;
 
