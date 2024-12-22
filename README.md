@@ -1,23 +1,27 @@
-# Shell Companny Detection
+# Shell Company Detection
 
 A lightweight pattern detection system for shell corporations. [WIP]
 
 ![Preview](/app/img/preview.png)
 
 # Data Sources
+
 [GLEIF](https://www.gleif.org/en/lei-data/gleif-api)
+
 - For fuzzymatching initial search terms
 - For an initial overview of legal incorporation
 - For registered relationships from direct to ultimate parent or child entities
-  
+
 [OpenCorporates](https://api.opencorporates.com/documentation/API-Reference)
+
 - For company ownership and operating info
 
 [EDGAR - SEC](https://data.sec.gov)
+
 - For most recent filings, often used to check incorporation date vs. filing activity
-  
 
 # Risk Flags
+
 There are four primary risk flags, each with varying weight and verification checks within themselves.
 
 1. Rapid Ownership Changes (0.8)
