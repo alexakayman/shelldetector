@@ -5,12 +5,12 @@ A lightweight pattern detection system for shell corporations. [WIP]
 ![Preview](/app/img/preview.png)
 
 # Data Sources
-[OpenCorporates](https://api.opencorporates.com/documentation/API-Reference)
+[GLEIF](https://www.gleif.org/en/lei-data/gleif-api)
 - For fuzzymatching initial search terms
 - For an initial overview of legal incorporation
 - For registered relationships from direct to ultimate parent or child entities
   
-[GLEIF](https://www.gleif.org/en/lei-data/gleif-api)
+[OpenCorporates](https://api.opencorporates.com/documentation/API-Reference)
 - For company ownership and operating info
 
 [EDGAR - SEC](https://data.sec.gov)
