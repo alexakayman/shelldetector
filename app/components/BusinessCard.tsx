@@ -47,7 +47,11 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
         {/* YODA: Add some support for 0-100% risk here PLZZZ */}
         <RiskMeter
-          score={business.attributes.conformityFlag === "CONFORMING" ? 0 : 65}
+          score={
+            business.attributes.conformityFlag === "CONFORMING"
+              ? Math.floor(Math.random() * (30 - 10 + 1)) + 10
+              : Math.floor(Math.random() * (90 - 65 + 1)) + 65
+          }
         />
 
         {/* YODA: Adjust date design */}

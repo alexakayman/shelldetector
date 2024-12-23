@@ -70,7 +70,9 @@ export class GLEIFCollector {
 
   async getCompanyByLEI(lei: string): Promise<BaseCompanyData> {
     try {
-      const { data } = await this.fetchWithAuth(`/lei-records/${lei}`);
+      const { data } = await this.fetchWithAuth<{ data: any }>(
+        `/lei-records/${lei}`
+      ); // TODO: type this
       const entity: GLEIFEntity = data.attributes;
 
       return {
@@ -96,7 +98,7 @@ export class GLEIFCollector {
       const relatedCompanies = new Map<string, BaseCompanyData>();
 
       // Fetch direct and ultimate parent relationships
-      const relationships = await this.fetchWithAuth(
+      const relationships = await this.fetchWithAuth<{ data: any[] }>(
         `/lei-records/${lei}/direct-parents`
       );
 
@@ -163,7 +165,7 @@ export class GLEIFCollector {
         "page[number]": options.page.toString(),
       });
 
-      const { data } = await this.fetchWithAuth(
+      const { data } = await this.fetchWithAuth<{ data: any[] }>(
         `/lei-records?${searchParams.toString()}`
       );
 

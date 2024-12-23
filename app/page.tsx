@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { BusinessCard } from "./components/BusinessCard";
-import type { BusinessEntity } from "./types/business";
+import type { BusinessEntity, RelatedEntity } from "./types/business";
 import { mockSearch } from "./mock/data";
 import { BusinessSearchResult } from "@/lib/collectors/types";
 

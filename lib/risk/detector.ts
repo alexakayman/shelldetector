@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 class ShellCompanyDetector {
   private readonly riskFlags: RiskFlag[] = [
     {

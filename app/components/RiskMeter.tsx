@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 
 interface RiskMeterProps {
-  score: number;
+  score: number | 0;
 }
 
 export function RiskMeter({ score }: RiskMeterProps) {
