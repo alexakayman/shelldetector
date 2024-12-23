@@ -7,13 +7,18 @@ import { RiskMeter } from "./RiskMeter";
 import { AlertCircle, Calendar, MapPin, Network } from "lucide-react";
 import { useState } from "react";
 import { RelationshipMap } from "./RelationshipMap";
+import { BusinessSearchResult } from "@/lib/collectors/types";
 
 interface BusinessCardProps {
-  business: BusinessEntity;
+  business: BusinessSearchResult;
 }
 
 export function BusinessCard({ business }: BusinessCardProps) {
   const [showMap, setShowMap] = useState(false);
+
+  if (business.source === "OpenCorporates") {
+    return <p>TODO</p>;
+  }
 
   return (
     <>
@@ -51,7 +56,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
           </div>
         </div>
 
-        {business.riskFactors.length > 0 && (
+        {/* {business.riskFactors.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center font-sans">
               <AlertCircle className="w-4 h-4 mr-1" />
@@ -65,14 +70,14 @@ export function BusinessCard({ business }: BusinessCardProps) {
               ))}
             </ul>
           </div>
-        )}
+        )} */}
       </Card>
 
-      <RelationshipMap
+      {/* <RelationshipMap
         business={business}
         isOpen={showMap}
         onClose={() => setShowMap(false)}
-      />
+      /> */}
     </>
   );
 }

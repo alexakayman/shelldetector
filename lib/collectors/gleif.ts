@@ -1,49 +1,28 @@
 // src/lib/collectors/gleif.ts
 import { BaseCompanyData, GLEIFEntity, GLEIFRelationship } from "./types";
 
-interface FuzzySearchResult {
-  lei: string;
-  legalName: string;
-  matchScore: number;
-  status: string;
-  legalAddress: string;
-  registrationAuthority: string;
+// GLEIF Fuzzy Search Response Types
+export interface GLEIFFuzzyResponse {
+  data: GLEIFFuzzyCompletion[];
 }
 
-interface GLEIFFuzzyResponse {
-  data: Array<{
-    id: string;
-    type: string;
-    attributes: {
-      lei: string;
-      entity: {
-        legalName: Array<{
-          name: string;
-          language: string;
-        }>;
-        legalAddress: {
-          addressLines: string[];
-          city: string;
-          country: string;
-          postalCode: string;
-        };
-        status: string;
-        registrationAuthority: {
-          registrationAuthorityID: string;
-          registrationAuthorityEntityID: string;
-        };
+export interface GLEIFFuzzyCompletion {
+  type: "fuzzycompletions";
+  attributes: {
+    value: string;
+  };
+  relationships: {
+    "lei-records": {
+      data: {
+        type: "lei-records";
+        id: string; // This is the LEI
       };
-      score: number;
+      links: {
+        related: string;
+      };
     };
-  }>;
-  meta: {
-    total: number;
-    page: number;
-    pageSize: number;
   };
 }
-
-// fuzzy match: https://api.gleif.org/api/v1/fuzzycompletions?field=entity.legalName&q=
 
 export class GLEIFCollector {
   private readonly baseUrl = "https://api.gleif.org/api/v1";
@@ -54,7 +33,7 @@ export class GLEIFCollector {
   // }
 
   // initial base run for all further queries. ex, fuzzy match calls this first -> fuzzy match logic.
-  private async fetchWithAuth(endpoint: string) {
+  private async fetchWithAuth<T>(endpoint: string) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       headers: {
         // Authorization: `Bearer ${this.apiKey}`, // no api key needed, public api
@@ -66,10 +45,13 @@ export class GLEIFCollector {
       if (response.status === 429) {
         throw new Error("GLEIF API rate limit exceeded");
       }
+
+      console.log(await response.text());
+
       throw new Error(`GLEIF API error: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as T;
   }
 
   private formatAddress(
@@ -136,37 +118,27 @@ export class GLEIFCollector {
   async fuzzySearch(
     query: string,
     options: {
-      page?: number;
-      pageSize?: number;
-      field?: "fulltext" | "legalName" | "previousLegalName"; // append field
+      field?: "fulltext" | "entity.legalName" | "previousLegalName"; // append field
     } = {}
-  ): Promise<FuzzySearchResult[]> {
+  ) {
     try {
       const searchParams = new URLSearchParams({
         q: query,
         field: options.field || "fulltext",
-        page: (options.page || 1).toString(),
-        page_size: (options.pageSize || 10).toString(),
       });
 
-      const response = await this.fetchWithAuth(
+      const { data } = await this.fetchWithAuth<GLEIFFuzzyResponse>(
         `/fuzzycompletions?${searchParams.toString()}`
       );
 
-      // debug.
-      console.log(`/fuzzycompletions?${searchParams.toString()}`);
-      console.log("Expecting: ../fuzzycompletions?field=entity.legalName&q=");
-
-      const data = response as GLEIFFuzzyResponse;
-
-      return data.data.map((item) => ({
-        lei: item.attributes.lei,
-        legalName: item.attributes.entity.legalName[0]?.name || "",
-        matchScore: item.attributes.score,
-        status: item.attributes.entity.status,
-        legalAddress: this.formatAddress(item.attributes.entity.legalAddress),
-        registrationAuthority:
-          item.attributes.entity.registrationAuthority.registrationAuthorityID,
+      return data.map((item) => ({
+        lei: item.relationships["lei-records"].data.id,
+        legalName: item.attributes.value,
+        // matchScore: item.attributes.score,
+        // status: item.attributes.entity.status,
+        // legalAddress: this.formatAddress(item.attributes.entity.legalAddress),
+        // registrationAuthority:
+        //   item.attributes.entity.registrationAuthority.registrationAuthorityID,
       }));
     } catch (error) {
       console.error(`Error performing fuzzy search for query ${query}:`, error);

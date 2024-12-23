@@ -7,10 +7,11 @@ import { Search } from "lucide-react";
 import { BusinessCard } from "./components/BusinessCard";
 import type { BusinessEntity } from "./types/business";
 import { mockSearch } from "./mock/data";
+import { BusinessSearchResult } from "@/lib/collectors/types";
 
 export default function Home() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<BusinessEntity[]>([]);
+  const [results, setResults] = useState<BusinessSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,6 +63,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
 
+    // fetch function
     try {
       const response = await fetch(
         `/api/companies/search?${new URLSearchParams({
@@ -78,30 +80,7 @@ export default function Home() {
 
       const data = await response.json();
 
-      const transformedResults: BusinessEntity[] = data.results.map(
-        (result) => ({
-          id: result.id,
-          name: result.name,
-          registrationDate:
-            result.metadata?.incorporationDate || new Date().toISOString(),
-          // Map the status to your specific union type
-          status: mapStatus(result.metadata?.status),
-          riskScore: calculateRiskScore(result),
-          riskFactors: determineRiskFactors(result),
-          lastFilingDate:
-            result.metadata?.lastFilingDate ||
-            result.metadata?.updated_at ||
-            new Date().toISOString(),
-          // Use the address from metadata or construct from components
-          address:
-            result.metadata?.legalAddress ||
-            result.metadata?.registeredAddress ||
-            "Address not available",
-          relatedEntities: [], // If you have related entities data, map it here
-        })
-      );
-
-      setResults(transformedResults);
+      setResults(data.results);
     } catch (error) {
       console.error("Search error:", error);
       setError(error instanceof Error ? error.message : "Search failed");
@@ -148,7 +127,7 @@ export default function Home() {
 
         <div className="grid gap-4 md:grid-cols-2">
           {results.map((business) => (
-            <BusinessCard key={business.id} business={business} />
+            <BusinessCard key={business.lei} business={business} />
           ))}
         </div>
 

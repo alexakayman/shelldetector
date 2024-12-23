@@ -93,3 +93,25 @@ export interface OpenCorporatesResponse<T> {
   api_version: string;
   results: T;
 }
+
+export type BusinessSearchResult =
+  | {
+      id: string;
+      name: string;
+      lei: string;
+      source: "GLEIF";
+      metadata: {
+        status: string;
+        apiUrl: string;
+      };
+    }
+  | {
+      // id: string;
+      // name: string;
+      lei: string;
+      source: "OpenCorporates";
+      // metadata: {
+      //   status: string;
+      //   apiUrl: string;
+      // };
+    };
