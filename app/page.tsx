@@ -127,7 +127,7 @@ export default function Home() {
 
         <div className="grid gap-4 md:grid-cols-2">
           {results.map((business) => (
-            <BusinessCard key={business.lei} business={business} />
+            <BusinessCard key={business.attributes.lei} business={business} />
           ))}
         </div>
 

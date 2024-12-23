@@ -21,16 +21,17 @@ async function gleifSearch(options: SearchOptions) {
     field: "entity.legalName",
   });
 
-  return results.map((result) => ({
-    id: `gleif-${result.lei}`,
-    name: result.legalName,
-    lei: result.lei,
-    source: "GLEIF" as const,
-    metadata: {
-      status: "ACTIVE", // Default status as we don't have this in fuzzy search
-      apiUrl: result.lei,
-    },
-  }));
+  // return results.map((result) => ({
+  //   id: `gleif-${result.lei}`,
+  //   name: result.legalName,
+  //   lei: result.lei,
+  //   source: "GLEIF" as const,
+  //   metadata: {
+  //     status: "ACTIVE", // Default status as we don't have this in fuzzy search
+  //     apiUrl: result.lei,
+  //   },
+  // }));
+  return results;
 }
 
 function openCorporateSearch(query: string) {

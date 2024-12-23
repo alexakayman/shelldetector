@@ -94,24 +94,131 @@ export interface OpenCorporatesResponse<T> {
   results: T;
 }
 
-export type BusinessSearchResult =
-  | {
+export type Address = {
+  language: string;
+  addressLines: string[];
+  addressNumber: string | null;
+  addressNumberWithinBuilding: string | null;
+  mailRouting: string | null;
+  city: string;
+  region: string | null;
+  country: string;
+  postalCode: string;
+};
+
+export type LegalName = {
+  name: string;
+  language: string;
+};
+
+export type OtherName = {
+  name: string;
+  language: string;
+  type: string;
+};
+
+export type ValidationAuthority = {
+  id: string;
+  other: string | null;
+};
+
+export type EntityExpiration = {
+  date: string | null;
+  reason: string | null;
+};
+
+export type AssociatedEntity = {
+  lei: string | null;
+  name: string | null;
+};
+
+export type Event = {
+  validationDocuments: string;
+  effectiveDate: string;
+  recordedDate: string;
+  type: string;
+  status: string;
+};
+
+export type EventGroup = {
+  groupType: string;
+  events: Event[];
+};
+
+export type Entity = {
+  legalName: LegalName;
+  otherNames: OtherName[];
+  transliteratedOtherNames: any[]; // Based on the data, this appears to always be empty
+  legalAddress: Address;
+  headquartersAddress: Address;
+  registeredAt: ValidationAuthority;
+  registeredAs: string;
+  jurisdiction: string;
+  category: string;
+  legalForm: {
+    id: string;
+    other: string | null;
+  };
+  associatedEntity: AssociatedEntity;
+  status: string;
+  expiration: EntityExpiration;
+  successorEntity: AssociatedEntity;
+  successorEntities: AssociatedEntity[];
+  creationDate: string | null;
+  subCategory: string | null;
+  otherAddresses: Address[];
+  eventGroups: EventGroup[];
+};
+
+export type Registration = {
+  initialRegistrationDate: string;
+  lastUpdateDate: string;
+  status: "ISSUED" | "LAPSED";
+  nextRenewalDate: string;
+  managingLou: string;
+  corroborationLevel: string;
+  validatedAt: ValidationAuthority;
+  validatedAs: string;
+  otherValidationAuthorities: {
+    validatedAt: {
       id: string;
-      name: string;
-      lei: string;
-      source: "GLEIF";
-      metadata: {
-        status: string;
-        apiUrl: string;
-      };
-    }
-  | {
-      // id: string;
-      // name: string;
-      lei: string;
-      source: "OpenCorporates";
-      // metadata: {
-      //   status: string;
-      //   apiUrl: string;
-      // };
     };
+    validatedAs: string;
+  }[];
+};
+
+export type Links = {
+  "relationship-record"?: string;
+  "lei-record"?: string;
+  "reporting-exception"?: string;
+  "relationship-records"?: string;
+  related?: string;
+};
+
+export type Relationships = {
+  "managing-lou": { links: Links };
+  "lei-issuer": { links: Links };
+  "field-modifications": { links: Links };
+  "direct-parent": { links: Links };
+  "ultimate-parent": { links: Links };
+  "direct-children"?: { links: Links };
+};
+
+export type BusinessSearchResult = {
+  type: string;
+  id: string;
+  attributes: {
+    lei: string;
+    entity: Entity;
+    registration: Registration;
+    bic: string[] | null;
+    mic: string | null;
+    ocid: string | null;
+    spglobal: string[];
+    conformityFlag: "CONFORMING" | "NON_CONFORMING";
+  };
+  relationships: Relationships;
+  links: {
+    self: string;
+  };
+};

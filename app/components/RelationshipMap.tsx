@@ -10,9 +10,10 @@ import ReactFlow, {
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { BusinessEntity, RelatedEntity } from "../types/business";
 import { useMemo } from "react";
+import { BusinessSearchResult } from "@/lib/collectors/types";
 
 interface RelationshipMapProps {
-  business: BusinessEntity;
+  business: BusinessSearchResult;
   isOpen: boolean;
   onClose: () => void;
 }

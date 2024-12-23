@@ -1,5 +1,6 @@
 // src/lib/collectors/gleif.ts
 import { BaseCompanyData, GLEIFEntity, GLEIFRelationship } from "./types";
+import { pathcat } from "pathcat";
 
 // GLEIF Fuzzy Search Response Types
 export interface GLEIFFuzzyResponse {
@@ -131,15 +132,19 @@ export class GLEIFCollector {
         `/fuzzycompletions?${searchParams.toString()}`
       );
 
-      return data.map((item) => ({
-        lei: item.relationships["lei-records"].data.id,
-        legalName: item.attributes.value,
-        // matchScore: item.attributes.score,
-        // status: item.attributes.entity.status,
-        // legalAddress: this.formatAddress(item.attributes.entity.legalAddress),
-        // registrationAuthority:
-        //   item.attributes.entity.registrationAuthority.registrationAuthorityID,
-      }));
+      const promises = data.map(async (result) => {
+        const fullRecord = await this.fetchWithAuth<{
+          data: unknown; // TODO: Actually type this
+        }>(
+          pathcat("/lei-records/:id", {
+            id: result.relationships["lei-records"].data.id,
+          })
+        );
+
+        return fullRecord.data;
+      });
+
+      return Promise.all(promises);
     } catch (error) {
       console.error(`Error performing fuzzy search for query ${query}:`, error);
       throw error;

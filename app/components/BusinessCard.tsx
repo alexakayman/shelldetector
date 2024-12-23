@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BusinessEntity } from "../types/business";
+import { formatDate } from "@/lib/utils";
 import { RiskMeter } from "./RiskMeter";
 import { AlertCircle, Calendar, MapPin, Network } from "lucide-react";
 import { useState } from "react";
@@ -16,17 +17,16 @@ interface BusinessCardProps {
 export function BusinessCard({ business }: BusinessCardProps) {
   const [showMap, setShowMap] = useState(false);
 
-  if (business.source === "OpenCorporates") {
-    return <p>TODO</p>;
-  }
-
   return (
     <>
       <Card className="p-6 space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between items-start">
-            <h3 className="text-xl font-semibold">{business.name}</h3>
-            {business.relatedEntities && (
+            <h3 className="text-xl font-semibold">
+              {business.attributes.entity.legalName.name}
+            </h3>
+
+            {business.relationships && (
               <Button
                 variant="outline"
                 size="sm"
@@ -37,22 +37,43 @@ export function BusinessCard({ business }: BusinessCardProps) {
               </Button>
             )}
           </div>
-          <div className="flex items-center text-sm text-muted-foreground font-sans">
-            <MapPin className="w-4 h-4 mr-1" />
-            {business.address}
+          <div className="flex text-sm text-muted-foreground font-sans space-x-1.5">
+            <MapPin className="w-4 h-4 mt-0.5" />
+            <pre className="font-sans">
+              {business.attributes.entity.legalAddress.addressLines.join("\n")}
+            </pre>
           </div>
         </div>
 
-        <RiskMeter score={business.riskScore} />
+        {/* YODA: Add some support for 0-100% risk here PLZZZ */}
+        <RiskMeter
+          score={business.attributes.conformityFlag === "CONFORMING" ? 0 : 65}
+        />
 
+        {/* YODA: Adjust date design */}
         <div className="space-y-2 font-sans">
           <div className="flex items-center text-sm">
             <Calendar className="w-4 h-4 mr-1" />
-            <span>Registered: {business.registrationDate}</span>
+            <span>
+              Registered:{" "}
+              {formatDate(
+                business.attributes.registration.initialRegistrationDate
+              )}
+            </span>
           </div>
           <div className="flex items-center text-sm">
             <Calendar className="w-4 h-4 mr-1" />
-            <span>Last Filing: {business.lastFilingDate}</span>
+            <span>
+              Last Filing:{" "}
+              {formatDate(business.attributes.registration.lastUpdateDate)}
+            </span>
+          </div>
+          <div className="flex items-center text-sm">
+            <Calendar className="w-4 h-4 mr-1" />
+            <span>
+              Renewal Date:{" "}
+              {formatDate(business.attributes.registration.nextRenewalDate)}
+            </span>
           </div>
         </div>
 
