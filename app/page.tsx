@@ -133,7 +133,9 @@ export default function Home() {
 
         {results.length === 0 && query && !loading && (
           <div className="text-center text-muted-foreground">
-            No results found for "{query}"
+            No results found for "{query}". Please make sure to include .Inc or
+            incorporation form. Searching Apple will return no results, while
+            Apple Inc will.
           </div>
         )}
       </div>
