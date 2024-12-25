@@ -25,8 +25,8 @@ export function BusinessCard({ business }: BusinessCardProps) {
             <h3 className="text-xl font-semibold">
               {business.attributes.entity.legalName.name}
             </h3>
-
-            {business.relationships && (
+            {/* #TODO: Business relations map with child company, direct parent, ultimate parent */}
+            {/* {business.relationships && (
               <Button
                 variant="outline"
                 size="sm"
@@ -35,7 +35,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
                 <Network className="w-4 h-4 mr-2" />
                 View Relations
               </Button>
-            )}
+            )} */}
           </div>
           <div className="flex text-sm text-muted-foreground font-sans space-x-1.5">
             <MapPin className="w-4 h-4 mt-0.5" />

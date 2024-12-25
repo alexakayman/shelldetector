@@ -125,7 +125,7 @@ export default function Home() {
           </Button>
         </form>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           {results.map((business) => (
             <BusinessCard key={business.attributes.lei} business={business} />
           ))}
