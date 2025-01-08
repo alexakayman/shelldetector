@@ -63,7 +63,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
 
-    // fetch function
+    // fetch initial list of companies with fuzzymatch for the inputted name
     try {
       const response = await fetch(
         `/api/companies/search?${new URLSearchParams({
