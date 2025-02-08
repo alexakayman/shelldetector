@@ -1,96 +1,190 @@
-import { BusinessEntity } from "../types/business";
+import { BusinessEntity, GleifObject } from "../types/business";
 
-export const mockSearch = async (query: string): Promise<BusinessEntity[]> => {
+export const mockSearch = async (query: string): Promise<GleifObject[]> => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   if (!query) return [];
 
   return [
     {
-      id: "1",
-      name: query + " LLC",
-      registrationDate: "2022-01-15",
-      status: "Active",
-      riskScore: 25,
-      riskFactors: [],
-      lastFilingDate: "2024-01-15",
-      address: "123 Business Ave, Dover, DE 19901",
-      relatedEntities: [
-        {
-          id: "1a",
-          name: query + " Services LLC",
-          relationship: "Subsidiary",
-          riskScore: 30,
+      type: "fuzzycompletions",
+      attributes: {
+        value: "HAWKER",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "969500AC418Z4V6ZOT06",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/969500AC418Z4V6ZOT06",
+          },
         },
-        {
-          id: "1b",
-          name: query + " Management LLC",
-          relationship: "Sister Company",
-          riskScore: 20,
-        },
-      ],
+      },
     },
     {
-      id: "2",
-      name: query + " Holdings Inc",
-      registrationDate: "2023-06-01",
-      status: "Active",
-      riskScore: 65,
-      riskFactors: [
-        "Multiple address changes in short period",
-        "Limited public information available",
-      ],
-      lastFilingDate: "2023-12-30",
-      address: "456 Corporate Blvd, Wilmington, DE 19801",
-      relatedEntities: [
-        {
-          id: "2a",
-          name: query + " Ventures LLC",
-          relationship: "Subsidiary",
-          riskScore: 75,
+      type: "fuzzycompletions",
+      attributes: {
+        value: "Hakera OÜ",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "254900S3YB2JTHBKAQ62",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/254900S3YB2JTHBKAQ62",
+          },
         },
-        {
-          id: "2b",
-          name: query + " Capital Inc",
-          relationship: "Parent Company",
-          riskScore: 45,
-        },
-      ],
+      },
     },
     {
-      id: "3",
-      name: query + " Int Corp",
-      registrationDate: "2023-11-30",
-      status: "Active",
-      riskScore: 85,
-      riskFactors: [
-        "Recently registered",
-        "Multiple related entities",
-        "Incomplete filing history",
-        "Unusual transaction patterns",
-      ],
-      lastFilingDate: "2024-02-01",
-      address: "789 Enterprise St, Dover, DE 19904",
-      relatedEntities: [
-        {
-          id: "3a",
-          name: query + " Global Trading Ltd",
-          relationship: "Subsidiary",
-          riskScore: 90,
+      type: "fuzzycompletions",
+      attributes: {
+        value: "Hankera Oy",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "743700CNBP207BYEKR92",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/743700CNBP207BYEKR92",
+          },
         },
-        {
-          id: "3b",
-          name: query + " Offshore Holdings",
-          relationship: "Sister Company",
-          riskScore: 95,
+      },
+    },
+    {
+      type: "fuzzycompletions",
+      attributes: {
+        value: "Hackel GmbH",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "8945002FGC8AMOYJ5F47",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/8945002FGC8AMOYJ5F47",
+          },
         },
-        {
-          id: "3c",
-          name: query + " Investment Group",
-          relationship: "Parent Company",
-          riskScore: 70,
+      },
+    },
+    {
+      type: "fuzzycompletions",
+      attributes: {
+        value: "HACER INVEST",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "969500GTLWNGRJ4AWM31",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/969500GTLWNGRJ4AWM31",
+          },
         },
-      ],
+      },
+    },
+    {
+      type: "fuzzycompletions",
+      attributes: {
+        value: "HACER S.R.L.",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "815600FFBB58D01A4031",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/815600FFBB58D01A4031",
+          },
+        },
+      },
+    },
+    {
+      type: "fuzzycompletions",
+      attributes: {
+        value: "Hackwerk B.V.",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "724500GF14ND4KIPTN20",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/724500GF14ND4KIPTN20",
+          },
+        },
+      },
+    },
+    {
+      type: "fuzzycompletions",
+      attributes: {
+        value: "HACKENBUSH LTD",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "213800YDK17OZH918270",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/213800YDK17OZH918270",
+          },
+        },
+      },
+    },
+    {
+      type: "fuzzycompletions",
+      attributes: {
+        value: "Hackett UK Ltd",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "254900YB8JFK6V78G690",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/254900YB8JFK6V78G690",
+          },
+        },
+      },
+    },
+    {
+      type: "fuzzycompletions",
+      attributes: {
+        value: "HAWKER RC7 LLC",
+      },
+      relationships: {
+        "lei-records": {
+          data: {
+            type: "lei-records",
+            id: "549300I10EOLXXROXJ13",
+          },
+          links: {
+            related:
+              "https://api.gleif.org/api/v1/lei-records/549300I10EOLXXROXJ13",
+          },
+        },
+      },
     },
   ];
 };

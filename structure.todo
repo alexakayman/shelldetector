@@ -25,3 +25,7 @@ src/
 │   └── constants.ts             # API URLs, thresholds, etc.
 ├── types/
 │   └── company.ts               # Shared company types
+
+
+
+# Recursive Path

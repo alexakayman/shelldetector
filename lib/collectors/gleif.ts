@@ -1,5 +1,12 @@
 // src/lib/collectors/gleif.ts
-import { BaseCompanyData, GLEIFEntity, GLEIFRelationship } from "./types";
+import { createCache } from "./cache";
+import {
+  BaseCompanyData,
+  GLEIFEntity,
+  GLEIFRelationship,
+  Links,
+  Relationships,
+} from "./types";
 import { pathcat } from "pathcat";
 
 // GLEIF Fuzzy Search Response Types
@@ -25,13 +32,18 @@ export interface GLEIFFuzzyCompletion {
   };
 }
 
+export interface GLEIFLEIRecordCompletion {
+  type: "lei-records";
+  id: string;
+  attributes: GLEIFEntity;
+  relationships: Relationships;
+  links: Links;
+}
+
+const cache = new Map<string, any>();
+
 export class GLEIFCollector {
   private readonly baseUrl = "https://api.gleif.org/api/v1";
-  // private readonly apiKey: string;
-
-  // constructor(apiKey: string) {
-  //   this.apiKey = apiKey;
-  // }
 
   // initial base run for all further queries. ex, fuzzy match calls this first -> fuzzy match logic.
   private async fetchWithAuth<T>(endpoint: string) {
@@ -55,6 +67,24 @@ export class GLEIFCollector {
     return response.json() as T;
   }
 
+  private leiRecordCompletionCache = createCache({
+    revalidate: async (id: string) => {
+      const url = pathcat("/lei-records/:id", { id });
+
+      const result = await this.fetchWithAuth<{
+        data: GLEIFLEIRecordCompletion;
+      }>(url);
+
+      return result.data;
+    },
+    set: async (key, value) => {
+      cache.set(key, value);
+    },
+    get: async (key) => {
+      return cache.get(key) ?? null;
+    },
+  });
+
   private formatAddress(
     address: GLEIFEntity["entity"]["legalAddress"]
   ): string {
@@ -68,55 +98,7 @@ export class GLEIFCollector {
       .join(", ");
   }
 
-  async getCompanyByLEI(lei: string): Promise<BaseCompanyData> {
-    try {
-      const { data } = await this.fetchWithAuth<{ data: any }>(
-        `/lei-records/${lei}`
-      ); // TODO: type this
-      const entity: GLEIFEntity = data.attributes;
-
-      return {
-        name: entity.entity.legalName[0].name,
-        registeredAddress: this.formatAddress(entity.entity.legalAddress),
-        incorporationDate: new Date(
-          entity.registration.initialRegistrationDate
-        ),
-        status: entity.entity.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
-        lei: entity.lei,
-        lastUpdated: new Date(entity.registration.lastUpdateDate),
-      };
-    } catch (error) {
-      console.error(`Error fetching company with LEI ${lei}:`, error);
-      throw error;
-    }
-  }
-
-  async getRelatedCompanies(
-    lei: string
-  ): Promise<Map<string, BaseCompanyData>> {
-    try {
-      const relatedCompanies = new Map<string, BaseCompanyData>();
-
-      // Fetch direct and ultimate parent relationships
-      const relationships = await this.fetchWithAuth<{ data: any[] }>(
-        `/lei-records/${lei}/direct-parents`
-      );
-
-      for (const relationship of relationships.data) {
-        const relatedLEI = relationship.relationships.parent.data.id;
-        if (!relatedCompanies.has(relatedLEI)) {
-          const companyData = await this.getCompanyByLEI(relatedLEI);
-          relatedCompanies.set(relatedLEI, companyData);
-        }
-      }
-
-      return relatedCompanies;
-    } catch (error) {
-      console.error(`Error fetching related companies for LEI ${lei}:`, error);
-      throw error;
-    }
-  }
-
+  // 01 CALL - FUZZY SEARCH
   // fuzzy search to generate an initial list of companies post input. This can either return company names (fuzzy matched) or check a keyword against the entirety of a GLEIF incorporation article.
   async fuzzySearch(
     query: string,
@@ -124,34 +106,38 @@ export class GLEIFCollector {
       field?: "fulltext" | "entity.legalName" | "previousLegalName"; // append field
     } = {}
   ) {
-    try {
-      const searchParams = new URLSearchParams({
-        q: query,
-        field: options.field || "fulltext",
-      });
+    const searchParams = new URLSearchParams({
+      q: query,
+      field: options.field || "fulltext",
+    });
 
-      const { data } = await this.fetchWithAuth<GLEIFFuzzyResponse>(
-        `/fuzzycompletions?${searchParams.toString()}`
-      );
+    const { data } = await this.fetchWithAuth<GLEIFFuzzyResponse>(
+      `/fuzzycompletions?${searchParams.toString()}`
+    );
 
-      const promises = data.map(async (result) => {
-        const fullRecord = await this.fetchWithAuth<{
-          data: unknown; // TODO: Actually type this
-        }>(
-          pathcat("/lei-records/:id", {
-            id: result.relationships["lei-records"].data.id,
-          })
-        );
+    const promises = data.map(async (result) =>
+      this.leiRecordCompletionCache(result.relationships["lei-records"].data.id)
+    );
 
-        return fullRecord.data;
-      });
-
-      return Promise.all(promises);
-    } catch (error) {
-      console.error(`Error performing fuzzy search for query ${query}:`, error);
-      throw error;
-    }
+    return Promise.all(promises);
   }
+
+  // 02 CALL - GET SINGLE COMPANY FROM LIST
+  // async getGLEIFCompany(lei: string) {
+  //   try {
+  //     const searchParams = new URLSearchParams({
+  //       lei: lei,
+  //     });
+
+  //     const { data } = await this.fetchWithAuth<GLEIFEntity>(
+  //       `/lei-records/${searchParams.toString()}`
+  //     );
+
+  //     const promises = data.map(async (result) => ) {
+  //       //
+  //     }
+  //   } catch (error) {}
+  // }
 
   // for specific company search against exact legal incorporation
   async searchCompanies(

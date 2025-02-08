@@ -193,6 +193,7 @@ export type Links = {
   "reporting-exception"?: string;
   "relationship-records"?: string;
   related?: string;
+  self?: string;
 };
 
 export type Relationships = {

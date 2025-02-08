@@ -27,6 +27,11 @@ export function BusinessCard({ business }: BusinessCardProps) {
             <h3 className="text-xl font-semibold">
               {business.attributes.entity.legalName.name}
             </h3>
+
+            {/* TODO: on click, navigate to company full page. call relationship maps, opencorporates, and magleb data */}
+            <Button variant="outline" size="sm" className="font-sans">
+              Investigate
+            </Button>
             {/* #TODO: Business relations map with child company, direct parent, ultimate parent */}
             {/* {business.relationships && (
               <Button
@@ -47,7 +52,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
           </div>
         </div>
 
-        {/* YODA: Add some support for 0-100% risk here PLZZZ */}
+        {/* TODO: Add some support for 0-100% risk here PLZZZ */}
         <RiskMeter
           score={
             business.attributes.conformityFlag === "CONFORMING"
@@ -56,7 +61,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
           }
         />
 
-        {/* YODA: Adjust date design */}
+        {/* TODO: Adjust date design */}
         <div className="space-y-2 font-sans">
           <div className="flex items-center text-sm">
             <Calendar className="w-4 h-4 mr-1" />
@@ -82,7 +87,6 @@ export function BusinessCard({ business }: BusinessCardProps) {
             </span>
           </div>
         </div>
-
         {/* {business.riskFactors.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center font-sans">
