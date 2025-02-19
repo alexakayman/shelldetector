@@ -10,6 +10,11 @@ export default function CompanyInfo({
 }) {
   const lei = params.company_lei;
 
+  try {
+    const response = fetch(`/api/companies/?${lei}`);
+    console.log(response);
+  } catch (error) {}
+
   //   TODO: call api again for full company details?
 
   return (

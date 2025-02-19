@@ -1,238 +1,246 @@
-export async function GET() {
-  return Response.json("PIss off");
-}
+import { NextApiRequest, NextApiResponse } from "next";
 
-// src/app/api/companies/[jurisdiction]/[id]/route.ts
-import { NextRequest } from "next/server";
-import { GLEIFCollector } from "@/lib/collectors/gleif";
-// import { EDGARCollector } from "@/lib/collectors/edgar";
-import { OpenCorporatesCollector } from "@/lib/collectors/opencorporates";
-// import { ShellCompanyDetector } from "@/lib/risk-analysis/detector";
-
-// Type for our enriched company response
-interface EnrichedCompanyResponse {
-  basicInfo: {
-    name: string;
-    registeredAddress: string;
-    incorporationDate: string;
-    status: string;
-  };
-  identifiers: {
-    lei?: string;
-    cik?: string;
-    companyNumber?: string;
-    jurisdictionCode?: string;
-  };
-  sources: {
-    opencorporates?: {
-      url: string;
-      x;
-      officers: Array<{
+interface LEIRecordData {
+  type: string;
+  id: string;
+  attributes: {
+    lei: string;
+    entity: {
+      legalName: {
         name: string;
-        position: string;
-        startDate?: string;
-        endDate?: string;
+        language: string;
+      };
+      otherNames?: Array<{
+        name: string;
+        language: string;
+        type: string;
       }>;
-      filings: Array<{
-        title: string;
-        date: string;
-        description?: string;
+      transliteratedOtherNames?: Array<any>;
+      legalAddress: {
+        language: string;
+        addressLines: string[];
+        addressNumber: string | null;
+        addressNumberWithinBuilding: string | null;
+        mailRouting: string | null;
+        city: string;
+        region: string | null;
+        country: string;
+        postalCode: string;
+      };
+      headquartersAddress: {
+        language: string;
+        addressLines: string[];
+        addressNumber: string | null;
+        addressNumberWithinBuilding: string | null;
+        mailRouting: string | null;
+        city: string;
+        region: string | null;
+        country: string;
+        postalCode: string;
+      };
+      registeredAt: {
+        id: string;
+        other: string | null;
+      };
+      registeredAs: string;
+      jurisdiction: string;
+      category: string | null;
+      legalForm: {
+        id: string;
+        other: string | null;
+      };
+      associatedEntity: {
+        lei: string | null;
+        name: string | null;
+      } | null;
+      status: string;
+      expiration: {
+        date: string | null;
+        reason: string | null;
+      } | null;
+      successorEntity: {
+        lei: string | null;
+        name: string | null;
+      } | null;
+      successorEntities?: Array<any>;
+      creationDate?: string;
+      subCategory?: string | null;
+      otherAddresses?: Array<{
+        fieldType: string;
+        language: string;
+        type: string;
+        addressLines: string[];
+        addressNumber: string | null;
+        city: string;
+        region: string | null;
+        country: string;
+        postalCode: string;
       }>;
+      eventGroups?: Array<any>;
     };
-    gleif?: {
-      relationships: {
-        directParent?: string;
-        ultimateParent?: string;
+    registration: {
+      initialRegistrationDate: string;
+      lastUpdateDate: string;
+      status: string;
+      nextRenewalDate: string;
+      managingLou: string;
+      corroborationLevel: string;
+      validatedAt: {
+        id: string;
+        other: string | null;
+      };
+      validatedAs: string;
+      otherValidationAuthorities?: Array<any>;
+    };
+    bic: string[] | null;
+    mic?: string | null;
+    ocid?: string | null;
+    spglobal?: string[];
+    conformityFlag?: string;
+  };
+  relationships: {
+    "managing-lou"?: {
+      links: {
+        related: string;
       };
     };
-    edgar?: {
-      filings: Array<{
-        form: string;
-        filingDate: string;
-        description: string;
-      }>;
+    "lei-issuer"?: {
+      links: {
+        related: string;
+      };
+    };
+    "field-modifications"?: {
+      links: {
+        related: string;
+      };
+    };
+    "direct-parent"?: {
+      links: {
+        "reporting-exception": string;
+      };
+    };
+    "ultimate-parent"?: {
+      links: {
+        "reporting-exception": string;
+      };
+    };
+    "direct-children"?: {
+      links: {
+        "relationship-records": string;
+        related: string;
+      };
+    };
+    "ultimate-children"?: {
+      links: {
+        "relationship-records": string;
+        related: string;
+      };
     };
   };
-  riskAnalysis?: {
-    score: number;
-    isShell: boolean;
-    flagsTriggered: string[];
-  };
-  metadata: {
-    fetchedAt: string;
-    dataSources: string[];
+  links: {
+    self: string;
   };
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { jurisdiction: string; id: string } }
-) {
-  try {
-    // Initialize collectors
-    const openCorpCollector = new OpenCorporatesCollector(
-      process.env.OPENCORPORATES_API_KEY
-    );
-    const gleifCollector = new GLEIFCollector();
-    // const edgarCollector = new EDGARCollector(process.env.SEC_USER_AGENT);
-    // const shellDetector = new ShellCompanyDetector();
-
-    const { jurisdiction, id } = params;
-    let response: Partial<EnrichedCompanyResponse> = {
-      metadata: {
-        fetchedAt: new Date().toISOString(),
-        dataSources: [],
-      },
+interface GLEIFResponse {
+  meta: {
+    goldenCopy?: {
+      publishDate: string;
     };
+  };
+  data: LEIRecordData;
+}
 
-    // Fetch data from OpenCorporates
-    try {
-      const companyData = await openCorpCollector.getCompanyByJurisdiction(
-        jurisdiction,
-        id
-      );
-      const [officers, filings] = await Promise.all([
-        openCorpCollector.getOfficers(jurisdiction, id),
-        openCorpCollector.getFilings(jurisdiction, id),
-      ]);
+interface ErrorResponse {
+  errors: Array<{
+    status: string;
+    title: string;
+    detail?: string;
+  }>;
+}
 
-      response.basicInfo = {
-        name: companyData.name,
-        registeredAddress: companyData.registeredAddress,
-        incorporationDate: companyData.incorporationDate.toISOString(),
-        status: companyData.status,
-      };
-
-      response.identifiers = {
-        companyNumber: id,
-        jurisdictionCode: jurisdiction,
-      };
-
-      response.sources = {
-        opencorporates: {
-          url: `https://opencorporates.com/companies/${jurisdiction}/${id}`,
-          officers,
-          filings,
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<LEIRecordData | ErrorResponse>
+) {
+  if (req.method !== "GET") {
+    return res.status(405).json({
+      errors: [
+        {
+          status: "405",
+          title: "Method Not Allowed",
+          detail: "Only GET requests are allowed for this endpoint",
         },
-      };
-
-      response.metadata!.dataSources.push("OpenCorporates");
-    } catch (error) {
-      console.error("OpenCorporates fetch error:", error);
-    }
-
-    // Try to fetch GLEIF data if we have a matching LEI
-    try {
-      const searchResults = await gleifCollector.searchCompanies(
-        response.basicInfo?.name || "",
-        { page: 1, limit: 1 }
-      );
-
-      if (searchResults.length > 0) {
-        const lei = searchResults[0].lei;
-        if (lei) {
-          const gleifData = await gleifCollector.getCompanyByLEI(lei);
-          const relatedCompanies = await gleifCollector.getRelatedCompanies(
-            lei
-          );
-
-          response.identifiers = {
-            ...response.identifiers,
-            lei,
-          };
-
-          response.sources = {
-            ...response.sources,
-            gleif: {
-              relationships: {
-                directParent: Array.from(relatedCompanies.values())[0]?.name,
-                ultimateParent: Array.from(relatedCompanies.values()).slice(
-                  -1
-                )[0]?.name,
-              },
-            },
-          };
-
-          response.metadata!.dataSources.push("GLEIF");
-        }
-      }
-    } catch (error) {
-      console.error("GLEIF fetch error:", error);
-    }
-
-    // Try to fetch EDGAR data for US companies
-    if (jurisdiction.toLowerCase() === "us") {
-      try {
-        const edgarData = await edgarCollector.getCompanyInfo(id);
-        const recentFilings = await edgarCollector.getRecentFilings(id);
-
-        response.identifiers = {
-          ...response.identifiers,
-          cik: id,
-        };
-
-        response.sources = {
-          ...response.sources,
-          edgar: {
-            filings: recentFilings.map((filing) => ({
-              form: filing.form,
-              filingDate: filing.filingDate,
-              description: filing.primaryDocument,
-            })),
-          },
-        };
-
-        response.metadata!.dataSources.push("EDGAR");
-      } catch (error) {
-        console.error("EDGAR fetch error:", error);
-      }
-    }
-
-    // Perform risk analysis if we have enough data
-    if (response.basicInfo) {
-      try {
-        const riskAnalysis = await shellDetector.analyzeCompany(
-          {
-            name: response.basicInfo.name,
-            registeredAddress: response.basicInfo.registeredAddress,
-            incorporationDate: new Date(response.basicInfo.incorporationDate),
-            status: response.basicInfo.status as any,
-            lastUpdated: new Date(),
-          },
-          {
-            relatedCompanies: new Map(), // Add related companies if available
-            filingHistory: response.sources?.edgar?.filings || [],
-          }
-        );
-
-        response.riskAnalysis = {
-          score: riskAnalysis.riskScore,
-          isShell: riskAnalysis.isShell,
-          flagsTriggered: riskAnalysis.flagsTriggered,
-        };
-      } catch (error) {
-        console.error("Risk analysis error:", error);
-      }
-    }
-
-    if (response.metadata!.dataSources.length === 0) {
-      return Response.json(
-        { error: "No data found from any source" },
-        { status: 404 }
-      );
-    }
-
-    return Response.json(response);
-  } catch (error) {
-    console.error("API route error:", error);
-
-    if (error instanceof Error) {
-      return Response.json({ error: error.message }, { status: 500 });
-    }
-
-    return Response.json(
-      { error: "An unexpected error occurred" },
-      { status: 500 }
-    );
+      ],
+    });
   }
+
+  const { company_lei } = req.query;
+
+  if (
+    !company_lei ||
+    typeof company_lei !== "string" ||
+    !isValidLEI(company_lei)
+  ) {
+    return res.status(400).json({
+      errors: [
+        {
+          status: "400",
+          title: "Bad Request",
+          detail: "A valid LEI must be provided",
+        },
+      ],
+    });
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.gleif.org/api/v1/lei-records/${company_lei}`,
+      {
+        headers: {
+          Accept: "application/vnd.api+json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      const statusCode = response.status;
+
+      return res.status(statusCode).json({
+        errors: Array.isArray(errorData.errors)
+          ? errorData.errors
+          : [
+              {
+                status: statusCode.toString(),
+                title: "GLEIF API Error",
+                detail: "Failed to fetch company data",
+              },
+            ],
+      });
+    }
+
+    const responseData: GLEIFResponse = await response.json();
+
+    // Only return the data part of the response
+    return res.status(200).json(responseData.data);
+  } catch (error) {
+    console.error("Error fetching company data:", error);
+
+    return res.status(500).json({
+      errors: [
+        {
+          status: "500",
+          title: "Internal Server Error",
+          detail: "Failed to fetch company data from GLEIF API",
+        },
+      ],
+    });
+  }
+}
+
+// Validate LEI format: 20 characters alphanumeric
+function isValidLEI(lei: string): boolean {
+  const leiRegex = /^[0-9A-Z]{20}$/;
+  return leiRegex.test(lei);
 }
