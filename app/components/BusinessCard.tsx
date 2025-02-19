@@ -9,6 +9,7 @@ import { AlertCircle, Calendar, MapPin, Network } from "lucide-react";
 import { useState } from "react";
 import { RelationshipMap } from "./RelationshipMap";
 import { BusinessSearchResult } from "@/lib/collectors/types";
+import Link from "next/link";
 
 interface BusinessCardProps {
   business: BusinessSearchResult;
@@ -29,9 +30,14 @@ export function BusinessCard({ business }: BusinessCardProps) {
             </h3>
 
             {/* TODO: on click, navigate to company full page. call relationship maps, opencorporates, and magleb data */}
-            <Button variant="outline" size="sm" className="font-sans">
-              Investigate
+            {/* CLICK DIS -> PAGE ROUTING /[company_lei] */}
+
+            <Button variant="outline" size="sm" className="font-sans" asChild>
+              <Link href={"/company/" + business.attributes.lei}>
+                Investigate
+              </Link>
             </Button>
+
             {/* #TODO: Business relations map with child company, direct parent, ultimate parent */}
             {/* {business.relationships && (
               <Button
