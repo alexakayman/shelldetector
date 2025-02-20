@@ -67,7 +67,13 @@ export default function Home() {
     try {
       const response = await fetch(
         `/api/companies/search?${new URLSearchParams({
-          q: query,
+          q:
+            query.includes("Inc") ||
+            query.includes("LLC") ||
+            query.includes("Ltd") ||
+            query.includes("Corp")
+              ? query
+              : `${query} Inc`,
           page: "1",
           limit: "10",
         })}`
@@ -133,9 +139,7 @@ export default function Home() {
 
         {results.length === 0 && query && !loading && (
           <div className="text-center text-muted-foreground">
-            No results found for "{query}". Please make sure to include .Inc or
-            incorporation form. Searching Apple will return no results, while
-            Apple Inc will.
+            No results found for "{query}".
           </div>
         )}
       </div>

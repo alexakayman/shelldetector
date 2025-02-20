@@ -159,8 +159,6 @@ export default function CompanyInfo({
     console.log(error);
   }
 
-  //   TODO: call api again for full company details?
-
   return (
     <main className="min-h-screen bg-[url('img/bg.jpg')] bg-cover bg-top">
       <div className="max-w-7xl mx-auto space-y-6 p-8">
