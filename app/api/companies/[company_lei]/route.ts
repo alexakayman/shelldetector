@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 
 interface LEIRecordData {
   type: string;
@@ -159,38 +159,31 @@ interface ErrorResponse {
   }>;
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<LEIRecordData | ErrorResponse>
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({
-      errors: [
-        {
-          status: "405",
-          title: "Method Not Allowed",
-          detail: "Only GET requests are allowed for this endpoint",
-        },
-      ],
-    });
-  }
+// Validate LEI format: 20 characters alphanumeric
+function isValidLEI(lei: string): boolean {
+  const leiRegex = /^[0-9A-Z]{20}$/;
+  return leiRegex.test(lei);
+}
 
-  const { company_lei } = req.query;
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { company_lei: string } }
+): Promise<NextResponse<LEIRecordData | ErrorResponse>> {
+  const company_lei = params.company_lei;
 
-  if (
-    !company_lei ||
-    typeof company_lei !== "string" ||
-    !isValidLEI(company_lei)
-  ) {
-    return res.status(400).json({
-      errors: [
-        {
-          status: "400",
-          title: "Bad Request",
-          detail: "A valid LEI must be provided",
-        },
-      ],
-    });
+  if (!company_lei || !isValidLEI(company_lei)) {
+    return NextResponse.json(
+      {
+        errors: [
+          {
+            status: "400",
+            title: "Bad Request",
+            detail: "A valid LEI must be provided",
+          },
+        ],
+      } as ErrorResponse,
+      { status: 400 }
+    );
   }
 
   try {
@@ -207,40 +200,40 @@ export default async function handler(
       const errorData = await response.json();
       const statusCode = response.status;
 
-      return res.status(statusCode).json({
-        errors: Array.isArray(errorData.errors)
-          ? errorData.errors
-          : [
-              {
-                status: statusCode.toString(),
-                title: "GLEIF API Error",
-                detail: "Failed to fetch company data",
-              },
-            ],
-      });
+      return NextResponse.json(
+        {
+          errors: Array.isArray(errorData.errors)
+            ? errorData.errors
+            : [
+                {
+                  status: statusCode.toString(),
+                  title: "GLEIF API Error",
+                  detail: "Failed to fetch company data",
+                },
+              ],
+        } as ErrorResponse,
+        { status: statusCode }
+      );
     }
 
     const responseData: GLEIFResponse = await response.json();
 
     // Only return the data part of the response
-    return res.status(200).json(responseData.data);
+    return NextResponse.json(responseData.data);
   } catch (error) {
     console.error("Error fetching company data:", error);
 
-    return res.status(500).json({
-      errors: [
-        {
-          status: "500",
-          title: "Internal Server Error",
-          detail: "Failed to fetch company data from GLEIF API",
-        },
-      ],
-    });
+    return NextResponse.json(
+      {
+        errors: [
+          {
+            status: "500",
+            title: "Internal Server Error",
+            detail: "Failed to fetch company data from GLEIF API",
+          },
+        ],
+      } as ErrorResponse,
+      { status: 500 }
+    );
   }
-}
-
-// Validate LEI format: 20 characters alphanumeric
-function isValidLEI(lei: string): boolean {
-  const leiRegex = /^[0-9A-Z]{20}$/;
-  return leiRegex.test(lei);
 }
