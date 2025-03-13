@@ -7,11 +7,29 @@ import ReactFlow, {
   useEdgesState,
   Panel,
   MarkerType,
+  Node,
+  Edge,
+  NodeChange,
+  EdgeChange,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { LEIRecordData } from "@/types/company";
+
+interface CompanyNodeData {
+  name: string;
+  lei: string;
+  jurisdiction: string;
+  status: string;
+  entityType: string;
+  incorporationDate?: string;
+}
+
+interface CompanyNodeProps {
+  data: CompanyNodeData;
+}
 
 // Custom node component
-const CompanyNode = ({ data }) => {
+const CompanyNode = ({ data }: CompanyNodeProps) => {
   return (
     <div
       className="p-4 bg-white rounded-lg shadow-md border border-teal-500"
@@ -45,137 +63,265 @@ const CompanyNode = ({ data }) => {
   );
 };
 
-// Mock data for company hierarchy
-const mockCompanies = {
-  parent: {
-    id: "openai-parent",
-    lei: "549300T3H4DK5Y21M728",
-    name: "OpenAI Global LLC",
-    jurisdiction: "Delaware, USA",
-    status: "Active",
-    entityType: "Limited Liability Company",
-    incorporationDate: "2015-12-11",
-    position: { x: 300, y: 50 },
-  },
-  subsidiaries: [
-    {
-      id: "openai-us",
-      lei: "549300RZ1V2K4U3JT546",
-      name: "OpenAI Inc.",
-      jurisdiction: "Delaware, USA",
-      status: "Active",
-      entityType: "Corporation",
-      incorporationDate: "2018-03-22",
-      position: { x: 100, y: 250 },
-      parentId: "openai-parent",
-    },
-    {
-      id: "openai-uk",
-      lei: "549300XJ83B3F85QLT31",
-      name: "OpenAI UK Ltd",
-      jurisdiction: "United Kingdom",
-      status: "Active",
-      entityType: "Private Limited Company",
-      incorporationDate: "2020-07-15",
-      position: { x: 350, y: 250 },
-      parentId: "openai-parent",
-    },
-    {
-      id: "openai-canada",
-      lei: "549300N936KD1SV7D968",
-      name: "OpenAI Canada Inc.",
-      jurisdiction: "Canada",
-      status: "Active",
-      entityType: "Corporation",
-      incorporationDate: "2021-02-18",
-      position: { x: 600, y: 250 },
-      parentId: "openai-parent",
-    },
-  ],
-  grandchildren: [
-    {
-      id: "openai-api",
-      lei: "549300HV328E5RJT9X12",
-      name: "OpenAI API Services LLC",
-      jurisdiction: "Delaware, USA",
-      status: "Active",
-      entityType: "Limited Liability Company",
-      incorporationDate: "2021-05-10",
-      position: { x: 0, y: 400 },
-      parentId: "openai-us",
-    },
-    {
-      id: "openai-ventures",
-      lei: "549300Q91PHL8VT4M773",
-      name: "OpenAI Ventures LLC",
-      jurisdiction: "Delaware, USA",
-      status: "Active",
-      entityType: "Limited Liability Company",
-      incorporationDate: "2020-11-24",
-      position: { x: 200, y: 400 },
-      parentId: "openai-us",
-    },
-    {
-      id: "openai-uk-research",
-      lei: "549300MT734S6JFX5V31",
-      name: "OpenAI Research UK Ltd",
-      jurisdiction: "United Kingdom",
-      status: "Active",
-      entityType: "Private Limited Company",
-      incorporationDate: "2021-01-12",
-      position: { x: 350, y: 400 },
-      parentId: "openai-uk",
-    },
-    {
-      id: "openai-toronto",
-      lei: "549300Z4AU6JC31KR44",
-      name: "OpenAI Toronto R&D Inc.",
-      jurisdiction: "Ontario, Canada",
-      status: "Active",
-      entityType: "Corporation",
-      incorporationDate: "2022-03-05",
-      position: { x: 600, y: 400 },
-      parentId: "openai-canada",
-    },
-  ],
-};
-
 const nodeTypes = {
   company: CompanyNode,
 };
 
-const CompanyHierarchyFlow = () => {
+interface CompanyHierarchyFlowProps {
+  preview?: boolean;
+  companyData?: LEIRecordData;
+}
+
+// Helper function to calculate node positions in a tree layout
+const calculateNodePositions = (
+  nodes: Node[],
+  edges: Edge[],
+  direction: "horizontal" | "vertical" = "vertical"
+) => {
+  const nodeMap = new Map<string, Node>();
+  const childrenMap = new Map<string, string[]>();
+  const parentMap = new Map<string, string>();
+
+  // Build maps for quick lookups
+  nodes.forEach((node) => nodeMap.set(node.id, node));
+  edges.forEach((edge) => {
+    const children = childrenMap.get(edge.source) || [];
+    children.push(edge.target);
+    childrenMap.set(edge.source, children);
+    parentMap.set(edge.target, edge.source);
+  });
+
+  // Find root nodes (nodes without parents)
+  const rootNodes = nodes.filter((node) => !parentMap.has(node.id));
+
+  // Calculate positions recursively
+  const calculatePositions = (
+    nodeId: string,
+    level: number,
+    index: number,
+    totalSiblings: number
+  ) => {
+    const node = nodeMap.get(nodeId);
+    if (!node) return;
+
+    const children = childrenMap.get(nodeId) || [];
+    const spacing = direction === "horizontal" ? 300 : 200;
+    const levelSpacing = direction === "horizontal" ? 200 : 300;
+
+    // Position the current node
+    if (direction === "horizontal") {
+      node.position = {
+        x: level * levelSpacing,
+        y: (index - totalSiblings / 2) * spacing,
+      };
+    } else {
+      node.position = {
+        x: (index - totalSiblings / 2) * spacing,
+        y: level * levelSpacing,
+      };
+    }
+
+    // Position children
+    children.forEach((childId, childIndex) => {
+      calculatePositions(childId, level + 1, childIndex, children.length);
+    });
+  };
+
+  // Start from root nodes
+  rootNodes.forEach((rootNode, index) => {
+    calculatePositions(rootNode.id, 0, index, rootNodes.length);
+  });
+
+  return nodes;
+};
+
+const CompanyHierarchyFlow = ({
+  preview = false,
+  companyData,
+}: CompanyHierarchyFlowProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [layout, setLayout] = useState("horizontal");
+  const [layout, setLayout] = useState<"horizontal" | "vertical">("vertical");
+  const [loading, setLoading] = useState(false);
+
+  // Function to fetch company data by LEI
+  const fetchCompanyData = async (
+    lei: string
+  ): Promise<LEIRecordData | null> => {
+    try {
+      const response = await fetch(`/api/companies/${lei}`);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching company data for ${lei}:`, error);
+      return null;
+    }
+  };
+
+  // Function to fetch child companies recursively
+  const fetchChildCompanies = async (lei: string): Promise<LEIRecordData[]> => {
+    try {
+      const response = await fetch(`/api/companies/${lei}/children`);
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching children for ${lei}:`, error);
+      return [];
+    }
+  };
 
   // Function to build nodes and edges from company data
-  const buildHierarchy = useCallback(() => {
-    const allCompanies = [
-      mockCompanies.parent,
-      ...mockCompanies.subsidiaries,
-      ...mockCompanies.grandchildren,
-    ];
+  const buildHierarchy = useCallback(async () => {
+    if (!companyData) {
+      // If no data, use mock data for preview
+      const mockNodes = [
+        {
+          id: "mock-parent",
+          data: {
+            name: "Example Parent Corp",
+            lei: "549300T3H4DK5Y21M728",
+            jurisdiction: "Delaware, USA",
+            status: "Active",
+            entityType: "Limited Liability Company",
+            incorporationDate: "2015-12-11",
+          },
+          position: { x: 300, y: 50 },
+          type: "company",
+        },
+        {
+          id: "mock-child",
+          data: {
+            name: "Example Child Corp",
+            lei: "549300RZ1V2K4U3JT546",
+            jurisdiction: "Delaware, USA",
+            status: "Active",
+            entityType: "Corporation",
+            incorporationDate: "2018-03-22",
+          },
+          position: { x: 300, y: 250 },
+          type: "company",
+        },
+      ];
 
-    // Generate nodes
-    const nodes = allCompanies.map((company) => ({
-      id: company.id,
-      data: {
-        ...company,
-      },
-      position: company.position,
-      type: "company",
-    }));
+      const mockEdges = [
+        {
+          id: "mock-edge",
+          source: "mock-parent",
+          target: "mock-child",
+          type: "smoothstep",
+          animated: false,
+          style: { stroke: "#14b8a6", strokeWidth: 2 },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: "#14b8a6",
+            width: 20,
+            height: 20,
+          },
+        },
+      ];
 
-    // Generate edges
-    const edges = [];
-    [...mockCompanies.subsidiaries, ...mockCompanies.grandchildren].forEach(
-      (company) => {
-        if (company.parentId) {
+      setNodes(mockNodes);
+      setEdges(mockEdges);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Build nodes from real data
+      const nodes: Node[] = [];
+      const edges: Edge[] = [];
+
+      // Add main company node
+      nodes.push({
+        id: companyData.id,
+        data: {
+          name: companyData.attributes.entity.legalName.name,
+          lei: companyData.attributes.lei,
+          jurisdiction: companyData.attributes.entity.jurisdiction,
+          status: companyData.attributes.entity.status,
+          entityType: companyData.attributes.entity.legalForm.id,
+          incorporationDate: companyData.attributes.entity.creationDate,
+        },
+        position: { x: 0, y: 0 }, // Position will be calculated later
+        type: "company",
+      });
+
+      // Only add parent if it's not a reporting exception
+      if (
+        companyData.relationships["ultimate-parent"]?.links &&
+        !companyData.relationships["ultimate-parent"].links[
+          "reporting-exception"
+        ].includes("reporting-exception")
+      ) {
+        const parentLei = companyData.relationships["ultimate-parent"].links[
+          "reporting-exception"
+        ]
+          .split("/")
+          .pop();
+        if (parentLei) {
+          // Fetch parent company data
+          const parentData = await fetchCompanyData(parentLei);
+          if (parentData) {
+            nodes.push({
+              id: parentLei,
+              data: {
+                name: parentData.attributes.entity.legalName.name,
+                lei: parentData.attributes.lei,
+                jurisdiction: parentData.attributes.entity.jurisdiction,
+                status: parentData.attributes.entity.status,
+                entityType: parentData.attributes.entity.legalForm.id,
+                incorporationDate: parentData.attributes.entity.creationDate,
+              },
+              position: { x: 0, y: 0 }, // Position will be calculated later
+              type: "company",
+            });
+
+            edges.push({
+              id: `${parentLei}-${companyData.id}`,
+              source: parentLei,
+              target: companyData.id,
+              type: "smoothstep",
+              animated: false,
+              style: { stroke: "#14b8a6", strokeWidth: 2 },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: "#14b8a6",
+                width: 20,
+                height: 20,
+              },
+            });
+          }
+        }
+      }
+
+      // Fetch and add child companies recursively
+      const fetchChildrenRecursively = async (
+        parentId: string,
+        level: number = 0
+      ) => {
+        if (level > 3) return; // Limit recursion depth to prevent too many API calls
+
+        const children = await fetchChildCompanies(parentId);
+        for (const child of children) {
+          const childNode: Node = {
+            id: child.id,
+            data: {
+              name: child.attributes.entity.legalName.name,
+              lei: child.attributes.lei,
+              jurisdiction: child.attributes.entity.jurisdiction,
+              status: child.attributes.entity.status,
+              entityType: child.attributes.entity.legalForm.id,
+              incorporationDate: child.attributes.entity.creationDate,
+            },
+            position: { x: 0, y: 0 }, // Position will be calculated later
+            type: "company",
+          };
+
+          nodes.push(childNode);
           edges.push({
-            id: `${company.parentId}-${company.id}`,
-            source: company.parentId,
-            target: company.id,
+            id: `${parentId}-${child.id}`,
+            source: parentId,
+            target: child.id,
             type: "smoothstep",
             animated: false,
             style: { stroke: "#14b8a6", strokeWidth: 2 },
@@ -186,31 +332,40 @@ const CompanyHierarchyFlow = () => {
               height: 20,
             },
           });
-        }
-      }
-    );
 
-    setNodes(nodes);
-    setEdges(edges);
-  }, [setNodes, setEdges]);
+          // Recursively fetch children of this child
+          await fetchChildrenRecursively(child.id, level + 1);
+        }
+      };
+
+      // Start fetching children from the main company
+      await fetchChildrenRecursively(companyData.id);
+
+      // Calculate positions for all nodes
+      const positionedNodes = calculateNodePositions(nodes, edges, layout);
+      setNodes(positionedNodes);
+      setEdges(edges);
+    } catch (error) {
+      console.error("Error building hierarchy:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [companyData, layout, setNodes, setEdges]);
 
   useEffect(() => {
     buildHierarchy();
   }, [buildHierarchy]);
 
-  // Auto-layout positioning (not implemented - would require dagre or custom algorithm)
   const applyLayout = useCallback(
-    (layoutType) => {
+    (layoutType: "horizontal" | "vertical") => {
       setLayout(layoutType);
-      // For a real implementation, we'd use dagre or another layout algorithm here
-      // For this mockup, we'll just use the predefined positions
       buildHierarchy();
     },
     [buildHierarchy]
   );
 
   return (
-    <div className="w-full h-screen bg-gray-50">
+    <div className={preview ? "w-full h-full" : "w-full h-screen bg-gray-50"}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -221,44 +376,51 @@ const CompanyHierarchyFlow = () => {
         attributionPosition="bottom-right"
         minZoom={0.2}
         maxZoom={1.5}
-        defaultZoom={0.8}
+        zoomOnScroll={!preview}
+        panOnScroll={!preview}
+        zoomOnPinch={!preview}
+        panOnDrag={!preview}
       >
-        <Controls />
-        <MiniMap
-          nodeStrokeColor="#14b8a6"
-          nodeColor="#ffffff"
-          nodeBorderRadius={8}
-        />
+        {!preview && <Controls />}
+        {!preview && (
+          <MiniMap
+            nodeStrokeColor="#14b8a6"
+            nodeColor="#ffffff"
+            nodeBorderRadius={8}
+          />
+        )}
         <Background color="#f9fafb" gap={16} />
-        <Panel position="top-left">
-          <div className="bg-white p-3 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-teal-800 mb-2">
-              Company Incorporation Hierarchy
-            </h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => applyLayout("horizontal")}
-                className={`px-3 py-1 text-sm rounded-md ${
-                  layout === "horizontal"
-                    ? "bg-teal-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Horizontal
-              </button>
-              <button
-                onClick={() => applyLayout("vertical")}
-                className={`px-3 py-1 text-sm rounded-md ${
-                  layout === "vertical"
-                    ? "bg-teal-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Vertical
-              </button>
+        {!preview && (
+          <Panel position="top-left">
+            <div className="bg-white p-3 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-teal-800 mb-2">
+                Company Incorporation Hierarchy
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => applyLayout("horizontal")}
+                  className={`px-3 py-1 text-sm rounded-md ${
+                    layout === "horizontal"
+                      ? "bg-teal-500 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  Horizontal
+                </button>
+                <button
+                  onClick={() => applyLayout("vertical")}
+                  className={`px-3 py-1 text-sm rounded-md ${
+                    layout === "vertical"
+                      ? "bg-teal-500 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  Vertical
+                </button>
+              </div>
             </div>
-          </div>
-        </Panel>
+          </Panel>
+        )}
       </ReactFlow>
     </div>
   );

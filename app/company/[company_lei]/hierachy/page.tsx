@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, Suspense, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { ChevronDown, Info, Search, ZoomIn, ZoomOut } from "lucide-react";
+import { useParams } from "next/navigation";
+import { LEIRecordData } from "@/types/company";
 
 // Dynamically import ReactFlow to avoid SSR issues
 const CompanyHierarchyFlow = dynamic(
@@ -30,16 +32,96 @@ interface LayoutOptions {
 }
 
 export default function CompanyHierarchyPage() {
+  const params = useParams();
+  const company_lei = params.company_lei as string;
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [companyData, setCompanyData] = useState<LEIRecordData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(`/api/companies/${company_lei}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.errors?.[0]?.detail || "Failed to fetch company data"
+          );
+        }
+        const data = await response.json();
+        setCompanyData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Error fetching company data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (company_lei) {
+      fetchCompanyData();
+    }
+  }, [company_lei]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full border-4 border-teal-500 border-t-transparent animate-spin mb-4"></div>
+          <p className="text-teal-800 font-medium">Loading company data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center">
+          <div className="text-red-500 mb-4">
+            <Info size={48} />
+          </div>
+          <p className="text-red-800 font-medium mb-2">
+            Error Loading Company Data
+          </p>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!companyData) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center">
+          <div className="text-gray-500 mb-4">
+            <Info size={48} />
+          </div>
+          <p className="text-gray-800 font-medium">No Company Data Found</p>
+          <p className="text-gray-600">
+            Could not find company with LEI: {company_lei}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 py-4 px-6 flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-800">
-          Corporate Incorporation Structure
-        </h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-800">
+            Corporate Incorporation Structure
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">
+            {companyData.attributes.entity.legalName.name}
+          </p>
+        </div>
 
         <div className="flex items-center gap-4">
           {/* Search */}
@@ -155,14 +237,14 @@ export default function CompanyHierarchyPage() {
             </div>
           }
         >
-          <CompanyHierarchyFlow />
+          <CompanyHierarchyFlow companyData={companyData} />
         </Suspense>
       </main>
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 py-3 px-6 flex justify-between items-center">
         <div className="text-sm text-gray-500">
-          Data last updated: February 15, 2025
+          Data last updated: {new Date().toLocaleDateString()}
         </div>
 
         <div className="flex items-center gap-4">
