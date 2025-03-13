@@ -98,6 +98,28 @@ export class GLEIFCollector {
       .join(", ");
   }
 
+  private mapToBaseCompanyData(
+    record: GLEIFLEIRecordCompletion
+  ): BaseCompanyData {
+    const { attributes } = record;
+    const { entity, registration } = attributes;
+
+    return {
+      name: entity.legalName[0].name,
+      registeredAddress: this.formatAddress(entity.legalAddress),
+      incorporationDate: new Date(registration.initialRegistrationDate),
+      status: entity.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+      lei: record.id,
+      lastUpdated: new Date(registration.lastUpdateDate),
+      metadata: {
+        companyNumber: record.id,
+        jurisdictionCode: entity.legalAddress.country,
+        companyType: entity.legalForm?.other || "",
+        registryUrl: record.links.self,
+      },
+    };
+  }
+
   // 01 CALL - FUZZY SEARCH
   // fuzzy search to generate an initial list of companies post input. This can either return company names (fuzzy matched) or check a keyword against the entirety of a GLEIF incorporation article.
   async fuzzySearch(
@@ -119,7 +141,8 @@ export class GLEIFCollector {
       this.leiRecordCompletionCache(result.relationships["lei-records"].data.id)
     );
 
-    return Promise.all(promises);
+    const records = await Promise.all(promises);
+    return records.map((record) => this.mapToBaseCompanyData(record));
   }
 
   // 02 CALL - GET SINGLE COMPANY FROM LIST
@@ -155,11 +178,13 @@ export class GLEIFCollector {
         `/lei-records?${searchParams.toString()}`
       );
 
-      return await Promise.all(
+      const records = await Promise.all(
         data.map(async (item: { attributes: { lei: string } }) => {
-          return this.getCompanyByLEI(item.attributes.lei);
+          return this.leiRecordCompletionCache(item.attributes.lei);
         })
       );
+
+      return records.map((record) => this.mapToBaseCompanyData(record));
     } catch (error) {
       console.error(`Error searching companies with query ${query}:`, error);
       throw error;

@@ -1,4 +1,9 @@
-import { MockCompaniesData, CompanyHierarchyData } from "@/types/company";
+import {
+  MockCompaniesData,
+  CompanyHierarchyData,
+  CompanyEdge,
+  CompanyNode,
+} from "@/types/company";
 
 // Mock data for OpenAI's incorporation structure
 export const mockOpenAIData: MockCompaniesData = {
@@ -200,7 +205,7 @@ export function convertToHierarchyData(
     ...mockData.grandchildren,
   ];
 
-  const edges = [];
+  const edges: CompanyEdge[] = [];
 
   // Create edges from subsidiaries to parent
   mockData.subsidiaries.forEach((subsidiary) => {
