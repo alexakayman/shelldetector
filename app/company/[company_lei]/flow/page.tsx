@@ -134,7 +134,7 @@ export default function CompanyHierarchyPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-semibold text-gray-800">
-              Corporate Incorporation Structure
+              Corporate Structure
             </h1>
             <p className="text-sm text-gray-600 mt-1">
               {companyData.attributes.entity.legalName.name}

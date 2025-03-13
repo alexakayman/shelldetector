@@ -22,6 +22,17 @@ export default function CompanyInfo({
   const [companyData, setCompanyData] = useState<LEIRecordData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(lei);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchCompanyData = async () => {
@@ -86,8 +97,16 @@ export default function CompanyInfo({
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 bg-[#ffffff] rounded-lg pr-2 overflow-clip border border-[#EEECE7]">
               <span className="px-2 py-1 text-sm bg-[#EEECE7]">LEI</span>
-              <span className="text-sm text-[#797773]">{lei}</span>
-              <Copy className="w-4 h-4 text-[#797773]" />
+              <span
+                className="text-sm text-[#797773] cursor-pointer hover:text-[#0c9b76] transition-colors"
+                onClick={copyToClipboard}
+              >
+                {copied ? "Copied!" : lei}
+              </span>
+              <Copy
+                className="w-4 h-4 text-[#797773] cursor-pointer hover:text-[#0c9b76] transition-colors"
+                onClick={copyToClipboard}
+              />
             </div>
             <Badge
               className={`${
@@ -122,15 +141,15 @@ export default function CompanyInfo({
               <DataRow label="Entity Type" value={entity.legalForm.id} />
               <DataRow
                 label="Legal Address"
-                value={
-                  <div>
-                    {entity.legalAddress.addressLines.join("<br />")}
-                    <br />
-                    {entity.legalAddress.city}, {entity.legalAddress.country}
-                    {entity.legalAddress.postalCode &&
-                      ` ${entity.legalAddress.postalCode}`}
-                  </div>
-                }
+                value={`${entity.legalAddress.addressLines.join(
+                  "<br />"
+                )}<br />${entity.legalAddress.city}, ${
+                  entity.legalAddress.country
+                }${
+                  entity.legalAddress.postalCode
+                    ? ` ${entity.legalAddress.postalCode}`
+                    : ""
+                }`}
               />
               <DataRow label="Jurisdiction" value={entity.jurisdiction} />
               <DataRow
@@ -267,7 +286,13 @@ function DataRow({
   return (
     <div className="grid grid-cols-2 gap-4">
       <span className="text-[#797773]">{label}</span>
-      <span className="text-[#8caaa9]">{value}</span>
+      <span className="text-[#8caaa9]">
+        {typeof value === "string" && value.includes("<br />") ? (
+          <span dangerouslySetInnerHTML={{ __html: value }} />
+        ) : (
+          value
+        )}
+      </span>
     </div>
   );
 }
@@ -285,7 +310,10 @@ function EntityCard({
     <div className="border border-[#8caaa9] rounded p-3 text-center bg-white">
       <h3 className="font-medium mb-1">{name}</h3>
       <p className="text-sm text-[#797773]">{status}</p>
-      <p className="text-sm text-[#797773]">{location}</p>
+      <p
+        className="text-sm text-[#797773]"
+        dangerouslySetInnerHTML={{ __html: location }}
+      />
     </div>
   );
 }
