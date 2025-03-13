@@ -5,6 +5,13 @@ export interface BaseCompanyData {
   status: "ACTIVE" | "INACTIVE" | "DISSOLVED";
   lei?: string;
   lastUpdated: Date;
+  metadata?: {
+    companyNumber?: string;
+    jurisdictionCode?: string;
+    companyType?: string;
+    registryUrl?: string;
+    opencorporatesUrl?: string;
+  };
 }
 
 export interface GLEIFEntity {

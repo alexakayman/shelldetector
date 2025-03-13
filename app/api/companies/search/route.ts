@@ -6,8 +6,12 @@ import {
   GLEIFFuzzyCompletion,
   GLEIFFuzzyResponse,
 } from "@/lib/collectors/gleif";
+import { BaseCompanyData, BusinessSearchResult } from "@/lib/collectors/types";
 
 export const dynamic = "force-dynamic";
+
+// Toggle for OpenCorporates backup search
+const USE_OPENCORPORATES_BACKUP = false;
 
 interface SearchOptions {
   query: string;
@@ -21,21 +25,123 @@ async function gleifSearch(options: SearchOptions) {
     field: "entity.legalName",
   });
 
-  // return results.map((result) => ({
-  //   id: `gleif-${result.lei}`,
-  //   name: result.legalName,
-  //   lei: result.lei,
-  //   source: "GLEIF" as const,
-  //   metadata: {
-  //     status: "ACTIVE", // Default status as we don't have this in fuzzy search
-  //     apiUrl: result.lei,
-  //   },
-  // }));
   return results;
 }
 
-function openCorporateSearch(query: string) {
-  //
+async function openCorporateSearch(
+  query: string,
+  options: { jurisdiction?: string; page?: number; limit?: number } = {}
+): Promise<BusinessSearchResult[]> {
+  const openCorpCollector = new OpenCorporatesCollector();
+
+  try {
+    const results = await openCorpCollector.searchCompanies(query, {
+      jurisdictionCode: options.jurisdiction || undefined,
+      page: options.page || 1,
+      perPage: options.limit || 10,
+    });
+
+    return results.map((result) => ({
+      type: "lei-records",
+      id: `oc-${result.metadata?.companyNumber}`,
+      attributes: {
+        lei: `oc-${result.metadata?.companyNumber}`,
+        entity: {
+          legalName: {
+            name: result.name,
+            language: "en",
+          },
+          otherNames: [],
+          transliteratedOtherNames: [],
+          legalAddress: {
+            language: "en",
+            addressLines: [result.registeredAddress],
+            addressNumber: null,
+            addressNumberWithinBuilding: null,
+            mailRouting: null,
+            city: "", // OpenCorporates doesn't provide structured address
+            region: null,
+            country: result.metadata?.jurisdictionCode || "",
+            postalCode: "",
+          },
+          headquartersAddress: {
+            language: "en",
+            addressLines: [result.registeredAddress],
+            addressNumber: null,
+            addressNumberWithinBuilding: null,
+            mailRouting: null,
+            city: "", // OpenCorporates doesn't provide structured address
+            region: null,
+            country: result.metadata?.jurisdictionCode || "",
+            postalCode: "",
+          },
+          registeredAt: {
+            id: "OpenCorporates",
+            other: null,
+          },
+          registeredAs: result.name,
+          jurisdiction: result.metadata?.jurisdictionCode || "",
+          category: "LEI",
+          legalForm: {
+            id: "other",
+            other: result.metadata?.companyType || "",
+          },
+          associatedEntity: {
+            lei: null,
+            name: null,
+          },
+          status: result.status,
+          expiration: {
+            date: null,
+            reason: null,
+          },
+          successorEntity: {
+            lei: null,
+            name: null,
+          },
+          successorEntities: [],
+          creationDate: result.incorporationDate.toISOString(),
+          subCategory: null,
+          otherAddresses: [],
+          eventGroups: [],
+        },
+        registration: {
+          initialRegistrationDate: result.incorporationDate.toISOString(),
+          lastUpdateDate: result.lastUpdated.toISOString(),
+          status: result.status === "ACTIVE" ? "ISSUED" : "LAPSED",
+          nextRenewalDate: new Date(
+            Date.now() + 365 * 24 * 60 * 60 * 1000
+          ).toISOString(), // Default to 1 year from now
+          managingLou: "OpenCorporates",
+          corroborationLevel: "PARTIALLY_CORROBORATED",
+          validatedAt: {
+            id: "OpenCorporates",
+            other: null,
+          },
+          validatedAs: result.name,
+          otherValidationAuthorities: [],
+        },
+        bic: null,
+        mic: null,
+        ocid: result.metadata?.companyNumber || null,
+        spglobal: [],
+        conformityFlag: "CONFORMING", // Default to conforming as we don't have this data
+      },
+      relationships: {
+        "managing-lou": { links: {} },
+        "lei-issuer": { links: {} },
+        "field-modifications": { links: {} },
+        "direct-parent": { links: {} },
+        "ultimate-parent": { links: {} },
+      },
+      links: {
+        self: result.metadata?.opencorporatesUrl || "",
+      },
+    }));
+  } catch (error) {
+    console.error("OpenCorporates search error:", error);
+    return [];
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -56,60 +162,45 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // const openCorpCollector = new OpenCorporatesCollector(
-    //   process.env.OPENCORPORATES_API_KEY
-    // );
-
-    // // Fetch OpenCorporates results if GLEIF results are empty
-    // let openCorpResults = [];
-    // if (gleifResults.length === 0) {
-    //   try {
-    //     console.log("Fetching OpenCorporates results"); // Debug log
-    //     const results = await openCorpCollector.searchCompanies(query, {
-    //       jurisdictionCode: jurisdiction || undefined,
-    //       page,
-    //       perPage: limit,
-    //     });
-
-    //     openCorpResults = results.map((result) => ({
-    //       id: `oc-${result.metadata?.companyNumber}`,
-    //       name: result.name,
-    //       matchScore: 1,
-    //       jurisdiction: result.metadata?.jurisdictionCode,
-    //       source: "OpenCorporates" as const,
-    //       metadata: result.metadata,
-    //     }));
-
-    //     console.log(
-    //       "Processed OpenCorporates results:",
-    //       openCorpResults.length
-    //     ); // Debug log
-    //   } catch (error) {
-    //     console.error("OpenCorporates search error:", error);
-    //   }
-    // }
-
-    // Combine and sort results
-    // const combinedResults = [...gleifResults, ...openCorpResults];
-
-    const combinedResults = await gleifSearch({
+    // First try GLEIF search
+    const gleifResults = await gleifSearch({
       limit,
       query,
     });
+
+    // If GLEIF results are empty and OpenCorporates backup is enabled, try OpenCorporates
+    let openCorpResults: BusinessSearchResult[] = [];
+    if (gleifResults.length === 0 && USE_OPENCORPORATES_BACKUP) {
+      console.log(
+        "No GLEIF results found, trying OpenCorporates backup search"
+      );
+      openCorpResults = await openCorporateSearch(query, {
+        jurisdiction: jurisdiction || undefined,
+        page,
+        limit,
+      });
+    }
+
+    // Combine results
+    const combinedResults = [...gleifResults, ...openCorpResults];
 
     console.log("Final results count:", combinedResults.length); // Debug log
 
     return NextResponse.json({
       results: combinedResults,
-      // metadata: {
-      //   fetchedAt: new Date().toISOString(),
-      //   sources: ["GLEIF"], // TODO: Figure out which sources returned
-      //   // sources: combinedResults.length > 0 ? ["GLEIF"] : ["OpenCorporates"],
-      //   query: {
-      //     original: query,
-      //     jurisdiction: jurisdiction ?? "all",
-      //   },
-      // },
+      metadata: {
+        fetchedAt: new Date().toISOString(),
+        sources:
+          combinedResults.length > 0
+            ? gleifResults.length > 0
+              ? ["GLEIF"]
+              : ["OpenCorporates"]
+            : [],
+        query: {
+          original: query,
+          jurisdiction: jurisdiction ?? "all",
+        },
+      },
     });
   } catch (error) {
     console.error("Search API error:", error);
