@@ -9,6 +9,8 @@ import Link from "next/link";
 import CompanyHierarchyFlow from "@/app/components/CompanyHierarchyFlow";
 import { useEffect, useState } from "react";
 import { LEIRecordData } from "@/types/company";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 export default function CompanyInfo({
   params,
@@ -16,6 +18,7 @@ export default function CompanyInfo({
   params: { company_lei: string };
 }) {
   const lei = params.company_lei;
+  const router = useRouter();
   const [companyData, setCompanyData] = useState<LEIRecordData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,8 +70,19 @@ export default function CompanyInfo({
     <main className="min-h-screen bg-[url('img/bg.jpg')] bg-cover bg-top">
       <div className="max-w-7xl mx-auto space-y-6 p-8">
         {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-4xl font-serif">{entity.legalName.name}</h1>
+        <div className="space-y-2 w-full">
+          <div className="flex flex-row justify-between items-center gap-8">
+            <h1 className="text-4xl font-serif">{entity.legalName.name}</h1>
+            <Button
+              variant="outline"
+              className="bg-[#EEECE7] text-[#797773] hover:bg-[#E5E2DC] rounded-full flex items-center gap-2"
+              onClick={() => router.push(`/`)}
+            >
+              <ArrowLeft size={16} />
+              Back to Search
+            </Button>
+          </div>
+
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 bg-[#ffffff] rounded-lg pr-2 overflow-clip border border-[#EEECE7]">
               <span className="px-2 py-1 text-sm bg-[#EEECE7]">LEI</span>
@@ -154,10 +168,10 @@ export default function CompanyInfo({
                 </svg>
                 Corporate Structure
               </h2>
-              <Link href={`/company/${lei}/hierachy`}>
+              <Link href={`/company/${lei}/flow`}>
                 <Button
                   variant="outline"
-                  className="bg-[#0c9b76] text-white hover:bg-[#0a8b68]"
+                  className="bg-[#EEECE7] text-[#797773] hover:bg-[#E5E2DC] rounded-full"
                 >
                   Expand
                 </Button>
